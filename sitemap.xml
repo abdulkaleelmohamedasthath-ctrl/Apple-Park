@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace YOUR-DOMAIN.netlify.app with your deployed domain before submitting to Google. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://YOUR-DOMAIN.netlify.app/</loc></url><url><loc>https://YOUR-DOMAIN.netlify.app/privacy.html</loc></url><url><loc>https://YOUR-DOMAIN.netlify.app/terms.html</loc></url><url><loc>https://YOUR-DOMAIN.netlify.app/returns.html</loc></url></urlset>
