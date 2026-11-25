@@ -9,14 +9,15 @@ init();
 // Optional public product sync; local fallback remains functional.
 (async()=>{try{const c=window.APPLE_PARK_CONFIG;const db=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey);const {data,error}=await db.from('products').select('*');if(error)throw error;products=data.map(x=>({...x,image:x.image_url||''}));draw();drawOffers()}catch(e){console.warn('Cloud products unavailable',e);products=[];draw()}})();
 
-function drawOffers(){const today=new Date().toISOString().slice(0,10);let offers=read('ap_offers',[]).filter(o=>(!o.start||o.start<=today)&&(!o.end||o.end>=today));let gallery=$('#offerGallery');if(!gallery)return;if(!offers.length){gallery.style.display='none';return;}$('#offers').style.display='none';gallery.innerHTML=offers.map(o=>{let phone=products.find(p=>String(p.id)===String(o.productId));return `<article class="offerCard">${o.image?`<img src="${esc(o.image)}" alt="${esc(o.title)}" loading="lazy">`:''}<div class="offerCardText"><span class="eyebrow">SPECIAL OFFER ${o.discount?'· '+Number(o.discount)+'% OFF':''}</span><h2>${esc(o.title)}</h2><p>${esc(o.description)}</p><a class="primary" href="#phones">${phone?'Shop '+esc(phone.name):'Shop products'} →</a></div></article>`}).join('');}
+let cloudOffers=[],cloudBanners=[];
+function drawOffers(){const today=new Date().toISOString().slice(0,10);let offers=cloudOffers.filter(o=>(!o.start||o.start<=today)&&(!o.end||o.end>=today));let gallery=$('#offerGallery');if(!gallery)return;if(!offers.length){gallery.style.display='none';$('#offers').style.display='';return;}$('#offers').style.display='none';gallery.style.display='';gallery.innerHTML=offers.map(o=>{let phone=products.find(p=>String(p.id)===String(o.productId));return `<article class="offerCard">${o.image?`<img src="${esc(o.image)}" alt="${esc(o.title)}" loading="lazy">`:''}<div class="offerCardText"><span class="eyebrow">SPECIAL OFFER ${o.discount?'· '+Number(o.discount)+'% OFF':''}</span><h2>${esc(o.title)}</h2><p>${esc(o.description)}</p><a class="primary" href="#phones">${phone?'Shop '+esc(phone.name):'Shop products'} →</a></div></article>`}).join('');}
 drawOffers();window.addEventListener('storage',e=>{if(e.key==='ap_offers')drawOffers()});
 
 // Welcome hero slideshow, using admin-managed banners in this browser.
 let heroSlides=[],heroIndex=0,heroTimer=null;
 const heroImg=document.querySelector('#heroBanner');
 const heroControls=document.createElement('div');heroControls.className='heroSlideControls';heroControls.setAttribute('aria-label','Welcome banner controls');document.querySelector('.hero').appendChild(heroControls);
-function loadHeroSlides(){try{const v=JSON.parse(localStorage.getItem('ap_hero_banners'));heroSlides=Array.isArray(v)&&v.length?v:[]}catch{heroSlides=[]}if(!heroSlides.length)heroSlides=[localStorage.getItem('ap_banner')||'assets/banner.jpg'];heroIndex=0;showHeroSlide();clearInterval(heroTimer);if(heroSlides.length>1)heroTimer=setInterval(()=>showHeroSlide((heroIndex+1)%heroSlides.length),5000)}
+function loadHeroSlides(){heroSlides=cloudBanners.length?cloudBanners:['assets/banner.jpg'];heroIndex=0;showHeroSlide();clearInterval(heroTimer);if(heroSlides.length>1)heroTimer=setInterval(()=>showHeroSlide((heroIndex+1)%heroSlides.length),5000)}
 function showHeroSlide(i=heroIndex){heroIndex=i;heroImg.src=heroSlides[i];heroControls.innerHTML=heroSlides.length>1?`<button type="button" class="heroArrow" data-step="-1" aria-label="Previous banner">‹</button><span class="heroDots">${heroSlides.map((_,j)=>`<button type="button" data-slide="${j}" aria-label="Show banner ${j+1}" aria-current="${j===i}"></button>`).join('')}</span><button type="button" class="heroArrow" data-step="1" aria-label="Next banner">›</button>`:''}
 heroControls.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-slide'))showHeroSlide(Number(b.dataset.slide));else if(b.hasAttribute('data-step'))showHeroSlide((heroIndex+Number(b.dataset.step)+heroSlides.length)%heroSlides.length)});
 loadHeroSlides();
@@ -40,3 +41,6 @@ function openProduct(id){
 }
 document.getElementById('detailClose').onclick=()=>document.getElementById('productDialog').close();
 document.getElementById('productDialog').addEventListener('click',e=>{if(e.target.id==='productDialog')e.target.close()});
+
+async function refreshCloudMedia(){try{const c=window.APPLE_PARK_CONFIG;const db=window.supabase.createClient(c.supabaseUrl,c.supabaseAnonKey);const {data,error}=await db.from('apple_park_media').select('banners,offers').eq('id',1).single();if(error)throw error;if(JSON.stringify(cloudBanners)!==JSON.stringify(data.banners)){cloudBanners=data.banners;loadHeroSlides()}cloudOffers=data.offers;drawOffers()}catch(e){console.warn('Cloud media unavailable',e)}}
+refreshCloudMedia();
